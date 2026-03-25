@@ -3,9 +3,9 @@
 
 The goal of EXCELSDMX package is to allow users to be able to generate SDMX files out from published excel statistical tables files. 
 
-## Installation of sdd_excel2sdmx package
+## Installation of fbosSDMX package
 
-You can install and execute the sdd_excel2sdmx package as per the following steps:
+You can install and execute the fbosSDMX package as per the following steps:
 
 ``` r
 # **************** How to install the package from R console ******************** #
