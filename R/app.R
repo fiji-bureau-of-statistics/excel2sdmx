@@ -414,7 +414,7 @@ run_fbosSDMX <- function() {
 
         table_long <- table %>%
           pivot_longer(
-            cols = -c(DATAFLOW:BASE_PER),
+            cols = -c(DATAFLOW:COMMENT),
             names_to = "ITEM",
             values_to = "OBS_VALUE"
           )
