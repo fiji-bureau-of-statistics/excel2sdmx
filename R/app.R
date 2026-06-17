@@ -1,7 +1,7 @@
 #' Run the SDMX Converter Dashboard
 #'
 #' @export
-run_fbosSDMX <- function() {
+run_fbosSDMX <- function() { #Start package prog
 
   # -------------------------------------------------
   # Load libraries
@@ -820,4 +820,4 @@ run_fbosSDMX <- function() {
   # -------------------------------------------------
   shinyApp(ui, server)
 
-}
+} # End package prog
