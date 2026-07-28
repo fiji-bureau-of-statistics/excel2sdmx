@@ -28,6 +28,7 @@ run_fbosSDMX <- function() { #Start package prog
         menuItem("National Accoutns Converter", tabName = "national", icon = icon("landmark")),
         menuItem("Poverty Converter", tabName = "poverty", icon = icon("scale-balanced")),
         menuItem("Visitors Converter", tabName = "visitor", icon = icon("plane")),
+        menuItem("IMTS Converter", tabName = "imts", icon = icon("ship")),
         menuItem("About", tabName = "about", icon = icon("info-circle"))
       )
     ),
@@ -244,6 +245,48 @@ run_fbosSDMX <- function() { #Start package prog
           )
         ),
 
+        # ---------------- IMTS TAB ----------------
+        tabItem(
+          tabName = "imts",
+
+          fluidRow(
+
+            box(
+              title = "Upload IMTS Excel File",
+              status = "primary",
+              solidHeader = TRUE,
+              width = 4,
+
+              fileInput("imts_file",
+                        "Upload IMTS Excel file (.xlsx)",
+                        accept = ".xlsx"),
+
+              actionButton("process_imts", "Process IMTS File", icon = icon("play")),
+              br(), br(),
+              downloadButton("download_imts_zip", "Download IMTS ZIP")
+            ),
+
+            box(
+              title = "IMTS Processing Log",
+              status = "warning",
+              solidHeader = TRUE,
+              width = 8,
+              verbatimTextOutput("log_imts")
+            )
+          ),
+
+          fluidRow(
+            box(
+              title = "IMTS Preview (First 10 Rows)",
+              status = "success",
+              solidHeader = TRUE,
+              width = 12,
+              tableOutput("preview_imts")
+            )
+          )
+        ),
+
+
         # ---------------- ABOUT TAB ----------------
         tabItem(
           tabName = "about",
@@ -279,8 +322,9 @@ run_fbosSDMX <- function() { #Start package prog
     output_files <- reactiveVal(NULL)
     preview_data <- reactiveVal(NULL)
 
-    add_log <- function(msg) {
-      log_text(paste(log_text(), msg, sep = "\n"))
+    # ---------------- GLOBAL HELPERS ----------------
+    add_log <- function(rv, msg) {
+      rv(paste(rv(), msg, sep = "\n"))
     }
 
     # ---------------- BOP PROCESSING ----------------
@@ -811,6 +855,136 @@ run_fbosSDMX <- function() { #Start package prog
         file.copy(temp_zip, file)
       },
       contentType = "application/zip"
+    )
+
+    # =================================================
+    # ---------------- IMTS ----------------
+    # =================================================
+    imts_log <- reactiveVal("")
+    imts_preview <- reactiveVal(NULL)
+    imts_files <- reactiveVal(NULL)
+
+    observeEvent(input$process_imts, {
+
+      req(input$imts_file)
+
+      imts_log("")
+      imts_preview(NULL)
+
+      add_log(imts_log, "Starting IMTS processing...")
+
+      file_path <- input$imts_file$datapath
+      sheet_names <- excel_sheets(file_path)
+
+      temp_dir <- tempdir()
+      created_files <- c()
+
+      for (sheet in sheet_names) {
+
+        add_log(imts_log, paste("Processing sheet:", sheet))
+
+        if (sheet == "DF_IMTS_TABLE1") {
+
+          table <- read_excel(file_path, sheet = sheet)
+
+          table <- table |>
+            mutate(across(starts_with("HS_"), ~ as.numeric(gsub(",", "", .))))
+
+          table_long <- table |>
+            pivot_longer(
+              cols = -c(DATAFLOW:TIME_PERIOD),
+              names_to = "TRADE_FLOW",
+              values_to = "OBS_VALUE"
+            )
+
+        } else if (sheet %in% c("DF_IMTS_TABLE2","DF_IMTS_TABLE3","DF_IMTS_TABLE5","DF_IMTS_TABLE6")) {
+
+          table <- read_excel(file_path, sheet = sheet)
+
+          table <- table |>
+            mutate(across(starts_with("HS_"), ~ as.numeric(gsub(",", "", .))))
+
+          table_long <- table |>
+            pivot_longer(
+              cols = -c(DATAFLOW:TIME_PERIOD),
+              names_to = "COMMODITY",
+              values_to = "OBS_VALUE"
+            )
+
+        } else if (sheet %in% c("DF_IMTS_TABLE4","DF_IMTS_TABLE7")) {
+
+          table <- read_excel(file_path, sheet = sheet)
+
+          table_long <- table |>
+            mutate(across(-(DATAFLOW:TIME_PERIOD),
+                          ~ as.numeric(gsub(",", "", trimws(.))))) |>
+            pivot_longer(
+              cols = -(DATAFLOW:TIME_PERIOD),
+              names_to = "COUNTERPART_AREA",
+              values_to = "OBS_VALUE"
+            )
+
+        } else {
+          add_log(imts_log, paste("Skipping sheet:", sheet))
+          next
+        }
+
+        #table_long <- add_transformations(table_long)
+
+        table_long <- table_long |>
+          mutate(
+            UNIT_MULT = ifelse(is.na(UNIT_MULT), "", UNIT_MULT),
+            #OBS_STATUS = ifelse(is.na(OBS_STATUS), "", OBS_STATUS),
+            COMMENT = ifelse(is.na(COMMENT), "", COMMENT),
+            OBS_VALUE = ifelse(is.na(OBS_VALUE) | is.infinite(OBS_VALUE), "", OBS_VALUE),
+
+            OBS_STATUS = case_when(
+              str_detect(TIME_PERIOD, "\\(YTD\\)") ~ "YTD",
+              str_detect(TIME_PERIOD, "\\[YTD\\]") ~ "YTD",
+              str_detect(TIME_PERIOD, "\\(P\\)") ~ "P",
+              str_detect(TIME_PERIOD, "\\[P\\]") ~ "P",
+              str_detect(TIME_PERIOD, "\\(R\\)") ~ "R",
+              str_detect(TIME_PERIOD, "\\[R\\]") ~ "P",
+
+              TRUE ~ ""
+            ),
+            TIME_PERIOD = str_trim(str_remove_all(TIME_PERIOD, "\\s*\\(YTD\\)|\\s*\\[YTD\\]|\\s*\\(P\\)|\\s*\\[P\\]|\\s*\\(R\\)|\\s*\\[R\\]"))
+
+          ) |>
+          select(DATAFLOW, FREQ, REF_AREA, TRADE_FLOW, COMMODITY,
+                 COUNTERPART_AREA, TRANSFORMATION, TIME_PERIOD,
+                 OBS_VALUE, UNIT_MEASURE, UNIT_MULT,
+                 OBS_STATUS, COMMENT, DECIMALS)
+
+        file_name <- file.path(temp_dir, paste0(sheet, ".csv"))
+        write.csv(table_long, file_name, row.names = FALSE)
+
+        created_files <- c(created_files, file_name)
+
+        if (is.null(imts_preview())) {
+          imts_preview(head(table_long, 10))
+        }
+      }
+
+      imts_files(created_files)
+      add_log(imts_log, paste("Completed:", length(created_files), "files ✔"))
+    })
+
+    output$preview_imts <- renderTable({
+      req(imts_preview())
+      imts_preview()
+    })
+
+    output$log_imts <- renderText({
+      imts_log()
+    })
+
+    output$download_imts_zip <- downloadHandler(
+      filename = function() paste0("IMTS_output_", Sys.Date(), ".zip"),
+      content = function(file) {
+        req(imts_files())
+        zip::zipr(zipfile = file, files = imts_files())
+      }
     )
 
   }
