@@ -913,6 +913,7 @@ run_fbosSDMX <- function() { #Start package prog
 
         } else if (sheet == "DF_IMTS_TABLE12"){
           table <- read_excel(file_path, sheet = sheet)
+
           table_long <- table |>
             pivot_longer(
               cols = matches("\\(.*\\)"),
@@ -932,8 +933,6 @@ run_fbosSDMX <- function() { #Start package prog
           next
         }
 
-        #table_long <- add_transformations(table_long)
-
         table_long <- table_long |>
           mutate(
             UNIT_MULT = ifelse(is.na(UNIT_MULT), "", UNIT_MULT),
@@ -941,17 +940,29 @@ run_fbosSDMX <- function() { #Start package prog
             COMMENT = ifelse(is.na(COMMENT), "", COMMENT),
             OBS_VALUE = ifelse(is.na(OBS_VALUE) | is.infinite(OBS_VALUE), "", OBS_VALUE),
 
+            # Extract P/p as OBS_STATUS
             OBS_STATUS = case_when(
-              str_detect(TIME_PERIOD, "\\(YTD\\)") ~ "YTD",
-              str_detect(TIME_PERIOD, "\\[YTD\\]") ~ "YTD",
-              str_detect(TIME_PERIOD, "\\(P\\)") ~ "P",
-              str_detect(TIME_PERIOD, "\\[P\\]") ~ "P",
-              str_detect(TIME_PERIOD, "\\(R\\)") ~ "R",
-              str_detect(TIME_PERIOD, "\\[R\\]") ~ "P",
-
+              str_detect(TIME_PERIOD, regex("\\(P\\)|\\[P\\]", ignore_case = TRUE)) ~ "P",
+              str_detect(TIME_PERIOD, regex("\\(R\\)|\\[R\\]", ignore_case = TRUE)) ~ "R",
               TRUE ~ ""
             ),
-            TIME_PERIOD = str_trim(str_remove_all(TIME_PERIOD, "\\s*\\(YTD\\)|\\s*\\[YTD\\]|\\s*\\(P\\)|\\s*\\[P\\]|\\s*\\(R\\)|\\s*\\[R\\]"))
+
+            # Add comment for YTD
+            COMMENT = case_when(
+              str_detect(TIME_PERIOD, regex("\\bYTD\\b", ignore_case = TRUE)) ~
+                "Year to date updates",
+              TRUE ~ ""
+            ),
+
+            # Remove YTD, P and R from TIME_PERIOD
+            TIME_PERIOD = TIME_PERIOD %>%
+              str_remove_all(
+                regex(
+                  "\\s*YTD|\\s*\\(P\\)|\\s*\\[P\\]|\\s*\\(R\\)|\\s*\\[R\\]",
+                  ignore_case = TRUE
+                )
+              ) %>%
+              str_trim()
 
           ) |>
           select(DATAFLOW, FREQ, REF_AREA, TRADE_FLOW, COMMODITY,
