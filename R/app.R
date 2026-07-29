@@ -897,7 +897,7 @@ run_fbosSDMX <- function() { #Start package prog
               values_to = "OBS_VALUE"
             )
 
-        } else if (sheet %in% c("DF_IMTS_TABLE2","DF_IMTS_TABLE3","DF_IMTS_TABLE5","DF_IMTS_TABLE6")) {
+        } else if (sheet %in% c("DF_IMTS_TABLE2","DF_IMTS_TABLE3", "DF_IMTS_TABLE4", "DF_IMTS_TABLE5","DF_IMTS_TABLE6", "DF_IMTS_TABLE7","DF_IMTS_TABLE9", "DF_IMTS_TABLE10")) {
 
           table <- read_excel(file_path, sheet = sheet)
 
@@ -911,17 +911,20 @@ run_fbosSDMX <- function() { #Start package prog
               values_to = "OBS_VALUE"
             )
 
-        } else if (sheet %in% c("DF_IMTS_TABLE4","DF_IMTS_TABLE7")) {
-
+        } else if (sheet == "DF_IMTS_TABLE12"){
           table <- read_excel(file_path, sheet = sheet)
-
           table_long <- table |>
-            mutate(across(-(DATAFLOW:TIME_PERIOD),
-                          ~ as.numeric(gsub(",", "", trimws(.))))) |>
             pivot_longer(
-              cols = -(DATAFLOW:TIME_PERIOD),
-              names_to = "COUNTERPART_AREA",
+              cols = matches("\\(.*\\)"),
+              names_to = c("TRANSPORT_MODE", "TRADE_FLOW"),
+              names_pattern = "^(.*)\\((.*)\\)$",
               values_to = "OBS_VALUE"
+            ) |>
+
+            mutate(
+              OBS_VALUE = as.numeric(
+                str_remove_all(as.character(OBS_VALUE), ",")
+              )
             )
 
         } else {
@@ -952,7 +955,7 @@ run_fbosSDMX <- function() { #Start package prog
 
           ) |>
           select(DATAFLOW, FREQ, REF_AREA, TRADE_FLOW, COMMODITY,
-                 COUNTERPART_AREA, TRANSFORMATION, TIME_PERIOD,
+                 COUNTERPART_AREA, TRANSFORMATION, TRANSPORT_MODE,TIME_PERIOD,
                  OBS_VALUE, UNIT_MEASURE, UNIT_MULT,
                  OBS_STATUS, COMMENT, DECIMALS)
 
