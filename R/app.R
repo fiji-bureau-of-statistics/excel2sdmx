@@ -897,7 +897,14 @@ run_fbosSDMX <- function() { #Start package prog
               values_to = "OBS_VALUE"
             )
 
-        } else if (sheet %in% c("DF_IMTS_TABLE2","DF_IMTS_TABLE3", "DF_IMTS_TABLE4", "DF_IMTS_TABLE5","DF_IMTS_TABLE6", "DF_IMTS_TABLE7","DF_IMTS_TABLE9", "DF_IMTS_TABLE10")) {
+        } else if (sheet %in% c("DF_IMTS_TABLE2",
+                                "DF_IMTS_TABLE3",
+                                "DF_IMTS_TABLE4",
+                                "DF_IMTS_TABLE5",
+                                "DF_IMTS_TABLE6",
+                                "DF_IMTS_TABLE7",
+                                "DF_IMTS_TABLE9",
+                                "DF_IMTS_TABLE10")) {
 
           table <- read_excel(file_path, sheet = sheet)
 
