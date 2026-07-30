@@ -327,7 +327,9 @@ run_fbosSDMX <- function() { #Start package prog
       rv(paste(rv(), msg, sep = "\n"))
     }
 
-    # ---------------- BOP PROCESSING ----------------
+    # =================================================
+    #                 BOP processing
+    # =================================================
 
     observeEvent(input$process, {
 
@@ -427,7 +429,9 @@ run_fbosSDMX <- function() { #Start package prog
       contentType = "application/zip"
     )
 
-    # ---------------- CPI PROCESSING ----------------
+    # =================================================
+    #                 CPI processing
+    # =================================================
 
     cpi_log_text <- reactiveVal("")
     cpi_output_files <- reactiveVal(NULL)
@@ -513,7 +517,9 @@ run_fbosSDMX <- function() { #Start package prog
       contentType = "application/zip"
     )
 
-    # ---------------- NATIONAL ACCOUNTS PROCESSING ----------------
+    # =================================================
+    #                 National Accounts processing
+    # =================================================
 
     na_log_text <- reactiveVal("")
     na_output_files <- reactiveVal(NULL)
@@ -610,7 +616,9 @@ run_fbosSDMX <- function() { #Start package prog
       contentType = "application/zip"
     )
 
-    # ---------------- POVERTY PROCESSING ----------------
+    # =================================================
+    #                    Poverty Processing
+    # =================================================
 
     poverty_log_text <- reactiveVal("")
     poverty_output_files <- reactiveVal(NULL)
@@ -708,7 +716,9 @@ run_fbosSDMX <- function() { #Start package prog
       contentType = "application/zip"
     )
 
-    # ---------------- VISITORS PROCESSING ----------------
+    # =================================================
+    #                    Visitors Processing
+    # =================================================
 
     visitor_log_text <- reactiveVal("")
     visitor_output_files <- reactiveVal(NULL)
@@ -858,8 +868,9 @@ run_fbosSDMX <- function() { #Start package prog
     )
 
     # =================================================
-    # ---------------- IMTS ----------------
+    #                    IMTS Processing
     # =================================================
+
     imts_log <- reactiveVal("")
     imts_preview <- reactiveVal(NULL)
     imts_files <- reactiveVal(NULL)
@@ -904,7 +915,8 @@ run_fbosSDMX <- function() { #Start package prog
                                 "DF_IMTS_TABLE6",
                                 "DF_IMTS_TABLE7",
                                 "DF_IMTS_TABLE9",
-                                "DF_IMTS_TABLE10")) {
+                                "DF_IMTS_TABLE10",
+                                "DF_IMTS_TABLE12")) {
 
           table <- read_excel(file_path, sheet = sheet)
 
