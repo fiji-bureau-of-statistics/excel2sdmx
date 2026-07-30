@@ -305,7 +305,8 @@ run_fbosSDMX <- function() { #Start package prog
               p("2. Consumer Price Index (CPI)"),
               p("3. National Accounts (NA)"),
               p("4. Poverty Statistics"),
-              p("5. Visitors Arrivals")
+              p("5. Visitors Arrivals"),
+              p("6. International Merchandise Trade Services (IMTS)")
             )
           )
         )
