@@ -916,7 +916,7 @@ run_fbosSDMX <- function() { #Start package prog
                                 "DF_IMTS_TABLE7",
                                 "DF_IMTS_TABLE9",
                                 "DF_IMTS_TABLE10",
-                                "DF_IMTS_TABLE12")) {
+                                "DF_IMTS_TABLE13")) {
 
           table <- read_excel(file_path, sheet = sheet)
 
