@@ -900,7 +900,7 @@ run_fbosSDMX <- function() { #Start package prog
           table <- read_excel(file_path, sheet = sheet)
 
           table <- table |>
-            mutate(across(starts_with("HS_"), ~ as.numeric(gsub(",", "", .))))
+            mutate(across(starts_with("HS"), ~ as.numeric(gsub(",", "", .))))
 
           table_long <- table |>
             pivot_longer(
@@ -956,7 +956,6 @@ run_fbosSDMX <- function() { #Start package prog
         table_long <- table_long |>
           mutate(
             UNIT_MULT = ifelse(is.na(UNIT_MULT), "", UNIT_MULT),
-            #OBS_STATUS = ifelse(is.na(OBS_STATUS), "", OBS_STATUS),
             COMMENT = ifelse(is.na(COMMENT), "", COMMENT),
             OBS_VALUE = ifelse(is.na(OBS_VALUE) | is.infinite(OBS_VALUE), "", OBS_VALUE),
 
@@ -985,8 +984,8 @@ run_fbosSDMX <- function() { #Start package prog
               str_trim()
 
           ) |>
-          select(DATAFLOW, FREQ, REF_AREA, TRADE_FLOW, COMMODITY,
-                 COUNTERPART_AREA, TRANSFORMATION, TRANSPORT_MODE,TIME_PERIOD,
+          select(DATAFLOW, FREQ, REF_AREA, INDICATOR, TRADE_FLOW, COMMODITY,
+                 COUNTERPART_AREA, TRANSPORT_MODE,TIME_PERIOD,
                  OBS_VALUE, UNIT_MEASURE, UNIT_MULT,
                  OBS_STATUS, COMMENT, DECIMALS)
 
