@@ -29,6 +29,7 @@ run_fbosSDMX <- function() { #Start package prog
         menuItem("Poverty Converter", tabName = "poverty", icon = icon("scale-balanced")),
         menuItem("Visitors Converter", tabName = "visitor", icon = icon("plane")),
         menuItem("IMTS Converter", tabName = "imts", icon = icon("ship")),
+        menuItem("Tourism Earnings Converter", tabName = "tour", icon = icon("money-bill-wave")),
         menuItem("About", tabName = "about", icon = icon("info-circle"))
       )
     ),
@@ -282,6 +283,47 @@ run_fbosSDMX <- function() { #Start package prog
               solidHeader = TRUE,
               width = 12,
               tableOutput("preview_imts")
+            )
+          )
+        ),
+
+        # ---------------- Tourism Earnings TAB ----------------
+        tabItem(
+          tabName = "tour",
+
+          fluidRow(
+
+            box(
+              title = "Upload Tourism earnings Excel File",
+              status = "primary",
+              solidHeader = TRUE,
+              width = 4,
+
+              fileInput("tour_file",
+                        "Upload Tourism earnings Excel file (.xlsx)",
+                        accept = ".xlsx"),
+
+              actionButton("process_tour", "Process Tourism Earnings File", icon = icon("play")),
+              br(), br(),
+              downloadButton("download_tour_zip", "Download Tourism earnings ZIP")
+            ),
+
+            box(
+              title = "Tourism Earnings Processing Log",
+              status = "warning",
+              solidHeader = TRUE,
+              width = 8,
+              verbatimTextOutput("log_tour")
+            )
+          ),
+
+          fluidRow(
+            box(
+              title = "Tourism earnigs Preview (First 10 Rows)",
+              status = "success",
+              solidHeader = TRUE,
+              width = 12,
+              tableOutput("preview_tour")
             )
           )
         ),
@@ -1020,11 +1062,129 @@ run_fbosSDMX <- function() { #Start package prog
       }
     )
 
+    # =================================================
+    #                    Tourism Earnings Processing
+    # =================================================
+
+    tour_log <- reactiveVal("")
+    tour_preview <- reactiveVal(NULL)
+    tour_files <- reactiveVal(NULL)
+
+    observeEvent(input$process_tour, {
+
+      req(input$tour_file)
+
+      tour_log("")
+      tour_preview(NULL)
+
+      add_log(tour_log, "Starting Tourism Earnings processing...")
+
+      file_path <- input$tour_file$datapath
+      sheet_names <- excel_sheets(file_path)
+
+      temp_dir <- tempdir()
+      created_files <- c()
+
+      for (sheet in sheet_names) {
+
+        add_log(tour_log, paste("Processing sheet:", sheet))
+
+        if (sheet %in% c("DF_TOURISM_EARNINGS_TABLE1",
+                         "DF_TOURISM_EARNINGS_TABLE2",
+                         "DF_TOURISM_EARNINGS_TABLE3",
+                         "DF_TOURISM_EARNINGS_TABLE4"))
+        {
+
+          table <- read_excel(file_path, sheet = sheet)
+
+          table <- table |>
+            mutate(across((which(names(table) == "DECIMALS") + 1):ncol(table), as.numeric))
+
+          table_long <- table |>
+            pivot_longer(
+              cols = -c(DATAFLOW:DECIMALS),
+              names_to = "TIME_PERIOD",
+              values_to = "OBS_VALUE"
+            )
+
+        } else {
+          add_log(tour_log, paste("Skipping sheet:", sheet))
+          next
+        }
+
+        table_long <- table_long |>
+          mutate(
+            FREQ = if_else(grepl("-Q[1-4]", TIME_PERIOD), "Q", "M"),
+            UNIT_MULT = ifelse(is.na(UNIT_MULT), "", UNIT_MULT),
+            COMMENT = ifelse(is.na(COMMENT), "", COMMENT),
+            OBS_VALUE = ifelse(is.na(OBS_VALUE) | is.infinite(OBS_VALUE), "", OBS_VALUE),
+
+            # Extract P/p as OBS_STATUS
+            OBS_STATUS = case_when(
+              str_detect(TIME_PERIOD, regex("\\(P\\)|\\[P\\]", ignore_case = TRUE)) ~ "P",
+              str_detect(TIME_PERIOD, regex("\\(R\\)|\\[R\\]", ignore_case = TRUE)) ~ "R",
+              TRUE ~ ""
+            ),
+
+            # Add comment for YTD
+            COMMENT = case_when(
+              str_detect(TIME_PERIOD, regex("\\bYTD\\b", ignore_case = TRUE)) ~
+                "Year to date updates",
+              TRUE ~ ""
+            ),
+
+            # Remove YTD, P and R from TIME_PERIOD
+            TIME_PERIOD = TIME_PERIOD %>%
+              str_remove_all(
+                regex(
+                  "\\s*YTD|\\s*\\(P\\)|\\s*\\[P\\]|\\s*\\(R\\)|\\s*\\[R\\]",
+                  ignore_case = TRUE
+                )
+              ) %>%
+              str_trim()
+
+          ) |>
+          select(DATAFLOW, FREQ, REF_AREA, INDICATOR, DIRECTION, TYPE, PURPOSE,
+                 COUNTERPART_AREA, OBS_VALUE, UNIT_MEASURE, UNIT_MULT,
+                 OBS_STATUS, COMMENT, DECIMALS)
+
+        file_name <- file.path(temp_dir, paste0(sheet, ".csv"))
+        write.csv(table_long, file_name, row.names = FALSE)
+
+        created_files <- c(created_files, file_name)
+
+        if (is.null(tour_preview())) {
+          imts_preview(head(table_long, 10))
+        }
+      }
+
+      tour_files(created_files)
+      add_log(tour_log, paste("Completed:", length(created_files), "files ✔"))
+    })
+
+    output$preview_imts <- renderTable({
+      req(tour_preview())
+      tour_preview()
+    })
+
+    output$log_tour <- renderText({
+      tour_log()
+    })
+
+    output$download_tour_zip <- downloadHandler(
+      filename = function() paste0("Tourism_Earnings_output_", Sys.Date(), ".zip"),
+      content = function(file) {
+        req(tour_files())
+        zip::zipr(zipfile = file, files = tour_files())
+      }
+    )
+
   }
 
   # -------------------------------------------------
   # Run App
   # -------------------------------------------------
   shinyApp(ui, server)
+
 
 } # End package prog
