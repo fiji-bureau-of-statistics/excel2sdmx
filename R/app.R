@@ -1144,7 +1144,7 @@ run_fbosSDMX <- function() { #Start package prog
               str_trim()
 
           ) |>
-          select(DATAFLOW, FREQ, REF_AREA, INDICATOR, PURPOSE,
+          select(DATAFLOW, FREQ, TIME_PERIOD, REF_AREA, INDICATOR, PURPOSE,
                  COUNTRY_RESIDENCE, OBS_VALUE, UNIT_MEASURE, UNIT_MULT,
                  OBS_STATUS, COMMENT, DECIMALS)
 
