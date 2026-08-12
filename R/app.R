@@ -1114,7 +1114,7 @@ run_fbosSDMX <- function() { #Start package prog
 
         table_long <- table_long |>
           mutate(
-            FREQ = if_else(grepl("-Q[1-4]", TIME_PERIOD), "Q", "M"),
+            FREQ = if_else(grepl("-Q[1-4]", TIME_PERIOD), "Q", "A"),
             UNIT_MULT = ifelse(is.na(UNIT_MULT), "", UNIT_MULT),
             COMMENT = ifelse(is.na(COMMENT), "", COMMENT),
             OBS_VALUE = ifelse(is.na(OBS_VALUE) | is.infinite(OBS_VALUE), "", OBS_VALUE),
