@@ -999,10 +999,19 @@ run_fbosSDMX <- function() { #Start package prog
               values_to = "OBS_VALUE"
 
             )
-        } else {
+        } else if(sheet == "DF_IMTS_TABLE14"){
+          table <- read_excel(file_path, sheet = sheet)
+          table_long <- table |>
+            pivot_longer(
+              cols = -c(DATAFLOW:TIME_PERIOD),
+              names_to = "TRADE_FLOW",
+              values_to = "OBS_VALUE"
+            )
+        }else {
           add_log(imts_log, paste("Skipping sheet:", sheet))
           next
         }
+
 
         table_long <- table_long |>
           mutate(
