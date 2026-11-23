@@ -366,8 +366,9 @@ run_fbosSDMX <- function() { #Start package prog
     preview_data <- reactiveVal(NULL)
 
     # ---------------- GLOBAL HELPERS ----------------
-    add_log <- function(rv, msg) {
-      rv(paste(rv(), msg, sep = "\n"))
+
+    add_log <- function(msg) {
+      log_text(paste(log_text(), msg, sep = "\n"))
     }
 
     # =================================================
@@ -1203,6 +1204,5 @@ run_fbosSDMX <- function() { #Start package prog
   # Run App
   # -------------------------------------------------
   shinyApp(ui, server)
-
 
 } # End package prog
