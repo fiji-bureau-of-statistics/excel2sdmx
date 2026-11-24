@@ -258,7 +258,7 @@ run_fbosSDMX <- function() { #Start package prog
               solidHeader = TRUE,
               width = 4,
 
-              fileInput("imts_file",
+              fileInput("imts_excel_file",
                         "Upload IMTS Excel file (.xlsx)",
                         accept = ".xlsx"),
 
@@ -272,7 +272,7 @@ run_fbosSDMX <- function() { #Start package prog
               status = "warning",
               solidHeader = TRUE,
               width = 8,
-              verbatimTextOutput("log_imts")
+              verbatimTextOutput("log_imts_text")
             )
           ),
 
@@ -282,7 +282,7 @@ run_fbosSDMX <- function() { #Start package prog
               status = "success",
               solidHeader = TRUE,
               width = 12,
-              tableOutput("preview_imts")
+              tableOutput("preview_imts_data")
             )
           )
         ),
@@ -299,7 +299,7 @@ run_fbosSDMX <- function() { #Start package prog
               solidHeader = TRUE,
               width = 4,
 
-              fileInput("tour_file",
+              fileInput("tour_excel_file",
                         "Upload Tourism earnings Excel file (.xlsx)",
                         accept = ".xlsx"),
 
@@ -313,7 +313,7 @@ run_fbosSDMX <- function() { #Start package prog
               status = "warning",
               solidHeader = TRUE,
               width = 8,
-              verbatimTextOutput("log_tour")
+              verbatimTextOutput("log_tour_text")
             )
           ),
 
@@ -323,7 +323,7 @@ run_fbosSDMX <- function() { #Start package prog
               status = "success",
               solidHeader = TRUE,
               width = 12,
-              tableOutput("preview_tour")
+              tableOutput("preview_tour_data")
             )
           )
         ),
@@ -915,20 +915,24 @@ run_fbosSDMX <- function() { #Start package prog
     #                    IMTS Processing
     # =================================================
 
-    imts_log <- reactiveVal("")
-    imts_preview <- reactiveVal(NULL)
-    imts_files <- reactiveVal(NULL)
+    imts_log_text <- reactiveVal("")
+    imts_output_file <- reactiveVal(NULL)
+    imts_preview_data <- reactiveVal(NULL)
+
+    add_imts_log <- function(msg) {
+      imts_log_text(paste(imts_log_text(), msg, sep = "\n"))
+    }
 
     observeEvent(input$process_imts, {
 
-      req(input$imts_file)
+      req(input$imts_excel_file)
 
-      imts_log("")
-      imts_preview(NULL)
+      imts_log_text("")
+      imts_preview_data(NULL)
 
-      add_log(imts_log, "Starting IMTS processing...")
+      add_imts_log("Starting IMTS processing...")
 
-      file_path <- input$imts_file$datapath
+      file_path <- input$imts_excel_file$datapath
       sheet_names <- excel_sheets(file_path)
 
       temp_dir <- tempdir()
@@ -936,7 +940,7 @@ run_fbosSDMX <- function() { #Start package prog
 
       for (sheet in sheet_names) {
 
-        add_log(imts_log, paste("Processing sheet:", sheet))
+        add_imts_log(paste("Processing sheet:", sheet))
 
         if (sheet == "DF_IMTS_TABLE1") {
 
@@ -1055,29 +1059,29 @@ run_fbosSDMX <- function() { #Start package prog
 
         created_files <- c(created_files, file_name)
 
-        if (is.null(imts_preview())) {
-          imts_preview(head(table_long, 10))
+        if (is.null(imts_preview_data())) {
+          imts_preview_data(head(table_long, 10))
         }
       }
 
-      imts_files(created_files)
-      add_log(imts_log, paste("Completed:", length(created_files), "files ✔"))
+      imts_output_file(created_files)
+      add_imts_log(paste("Completed:", length(created_files), "files ✔"))
     })
 
-    output$preview_imts <- renderTable({
-      req(imts_preview())
-      imts_preview()
+    output$preview_imts_data <- renderTable({
+      req(imts_preview_data())
+      imts_preview_data()
     })
 
-    output$log_imts <- renderText({
-      imts_log()
+    output$log_imts_text <- renderText({
+      imts_log_text()
     })
 
     output$download_imts_zip <- downloadHandler(
       filename = function() paste0("IMTS_output_", Sys.Date(), ".zip"),
       content = function(file) {
-        req(imts_files())
-        zip::zipr(zipfile = file, files = imts_files())
+        req(imts_output_file())
+        zip::zipr(zipfile = file, files = imts_output_file())
       }
     )
 
@@ -1085,20 +1089,24 @@ run_fbosSDMX <- function() { #Start package prog
     #                    Tourism Earnings Processing
     # =================================================
 
-    tour_log <- reactiveVal("")
-    tour_preview <- reactiveVal(NULL)
-    tour_files <- reactiveVal(NULL)
+    tour_log_text <- reactiveVal("")
+    tour_preview_data <- reactiveVal(NULL)
+    tour_output_file <- reactiveVal(NULL)
+
+    add_tour_log <- function(msg) {
+      tour_log_text(paste(tour_log_text(), msg, sep = "\n"))
+    }
 
     observeEvent(input$process_tour, {
 
-      req(input$tour_file)
+      req(input$tour_excel_file)
 
-      tour_log("")
-      tour_preview(NULL)
+      tour_log_text("")
+      tour_preview_data(NULL)
 
-      add_log(tour_log, "Starting Tourism Earnings processing...")
+      add_tour_log("Starting Tourism Earnings processing...")
 
-      file_path <- input$tour_file$datapath
+      file_path <- input$tour_excel_file$datapath
       sheet_names <- excel_sheets(file_path)
 
       temp_dir <- tempdir()
@@ -1106,7 +1114,7 @@ run_fbosSDMX <- function() { #Start package prog
 
       for (sheet in sheet_names) {
 
-        add_log(tour_log, paste("Processing sheet:", sheet))
+        add_tour_log(paste("Processing sheet:", sheet))
 
         if (sheet %in% c("DF_TOURISM_EARNINGS_TABLE1",
                          "DF_TOURISM_EARNINGS_TABLE2",
@@ -1127,7 +1135,7 @@ run_fbosSDMX <- function() { #Start package prog
             )
 
         } else {
-          add_log(tour_log, paste("Skipping sheet:", sheet))
+          add_tour_log(paste("Skipping sheet:", sheet))
           next
         }
 
@@ -1172,29 +1180,29 @@ run_fbosSDMX <- function() { #Start package prog
 
         created_files <- c(created_files, file_name)
 
-        if (is.null(tour_preview())) {
-          imts_preview(head(table_long, 10))
+        if (is.null(tour_preview_data())) {
+          tour_preview_data(head(table_long, 10))
         }
       }
 
-      tour_files(created_files)
-      add_log(tour_log, paste("Completed:", length(created_files), "files ✔"))
+      tour_output_file(created_files)
+      add_tour_log(paste("Completed:", length(created_files), "files ✔"))
     })
 
-    output$preview_imts <- renderTable({
-      req(tour_preview())
-      tour_preview()
+    output$preview_tour_data <- renderTable({
+      req(tour_preview_data())
+      tour_preview_data()
     })
 
-    output$log_tour <- renderText({
-      tour_log()
+    output$log_tour_text <- renderText({
+      tour_log_text()
     })
 
     output$download_tour_zip <- downloadHandler(
       filename = function() paste0("Tourism_Earnings_output_", Sys.Date(), ".zip"),
       content = function(file) {
-        req(tour_files())
-        zip::zipr(zipfile = file, files = tour_files())
+        req(tour_output_file())
+        zip::zipr(zipfile = file, files = tour_output_file())
       }
     )
 
